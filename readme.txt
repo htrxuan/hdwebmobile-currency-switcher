@@ -5,7 +5,7 @@ Tags: woocommerce, currency switcher, multi-currency, exchange rate
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 Requires Plugins: woocommerce
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -26,12 +26,16 @@ A competing WooCommerce currency-switcher plugin had a serious authorization vul
 = Key Features =
 * Add as many currencies as you like, each with its own symbol, exchange rate, and decimal places
 * A simple `[hdcs_switcher]` shortcode, plus automatic placement on shop and product pages
+* Optionally show the switcher right in your site navigation menu (works with both classic and block themes)
+* Optionally pick a visitor's starting currency from their country, using WooCommerce's own local geolocation -- no third-party API is called, and a visitor who picks a currency always keeps their choice
 * Prices convert consistently across shop, cart, and checkout using WooCommerce's own price pipeline
 * Orders are stamped with the currency the customer actually saw and paid in
 
 = Limitations (please read before installing) =
 * Exchange rates are set manually by the store admin -- there is no automatic exchange-rate lookup or daily update
 * This does not manage multi-currency payment gateway settlement; whether your payment processor can actually settle in a given currency is between you and your gateway
+* Automatic currency-by-country relies on WooCommerce's own geolocation database being set up (a free MaxMind license key under WooCommerce > Settings > Integration). If it isn't, or the visitor's country can't be determined, the store's base currency is used
+* Automatic selection only chooses the *starting* currency on a visitor's first look; it never overrides a currency the visitor has picked
 
 == Installation ==
 
@@ -45,7 +49,10 @@ A competing WooCommerce currency-switcher plugin had a serious authorization vul
 On the Currency Switcher settings tab, add a currency code, symbol, and rate relative to your store's base currency.
 
 = 2. Customers switch =
-The switcher dropdown appears automatically on shop and product pages, and via the `[hdcs_switcher]` shortcode anywhere else.
+The switcher dropdown appears automatically on shop and product pages, and via the `[hdcs_switcher]` shortcode anywhere else. Tick "Show the currency switcher in the site navigation menu" to also add it to your header menu.
+
+= 3. (Optional) Start from the visitor's country =
+Fill in the Countries column for each currency (e.g. `US, CA` for USD) and tick "Pick a starting currency from the visitor's country". On a visitor's first look, WooCommerce's own geolocation chooses which currency to show; once they pick one themselves, that choice is remembered and always wins.
 
 == Screenshots ==
 
@@ -53,6 +60,10 @@ The switcher dropdown appears automatically on shop and product pages, and via t
 2. The currency dropdown on a shop page.
 
 == Changelog ==
+
+= 1.1.0 =
+* New: option to show the currency switcher in the site navigation menu (classic and block themes).
+* New: option to pick a visitor's starting currency from their country via WooCommerce's own local geolocation (no third-party API). Each currency takes an optional list of country codes; a manually chosen currency always wins.
 
 = 1.0.0 =
 * Initial release: capability- and nonce-gated currency configuration, cookie-based customer switch, full price-pipeline conversion.

@@ -22,13 +22,16 @@ A competing WooCommerce currency-switcher plugin had a serious authorization vul
 
 * Add as many currencies as you like, each with its own symbol, exchange rate, and decimal places
 * A `[hdcs_switcher]` shortcode, plus automatic placement on shop and product pages
+* Optionally show the switcher in the site navigation menu (classic and block themes)
+* Optionally pick a visitor's starting currency from their country, via WooCommerce's own local geolocation (no third-party API); a manually chosen currency always wins
 * Prices convert consistently across shop, cart, and checkout using WooCommerce's own price pipeline
 * Orders are stamped with the currency the customer actually saw and paid in
 
-## Limitations (v1)
+## Limitations
 
 * Exchange rates are set manually -- no automatic exchange-rate lookup
 * Does not manage multi-currency payment gateway settlement
+* Automatic currency-by-country needs WooCommerce's geolocation database (a free MaxMind key); it only sets the first-visit default and never overrides a visitor's pick
 
 ## Installation
 

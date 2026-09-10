@@ -11,3 +11,19 @@
 .hdcs-switcher select {
     padding: 0.3em 0.5em;
 }
+
+/* In-menu variant: sit inline with the other nav items, no bottom margin. */
+.hdcs-switcher--menu {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+}
+
+.hdcs-menu-item {
+    display: flex;
+    align-items: center;
+}
+
+.hdcs-switcher--menu select {
+    padding: 0.15em 0.4em;
+}

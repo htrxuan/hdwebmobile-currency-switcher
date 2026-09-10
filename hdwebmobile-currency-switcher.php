@@ -4,7 +4,7 @@
  * Plugin Name: HDWebmobile Currency Switcher
  * Plugin URI: https://hdwebmobile.com/plugins/hdwebmobile-currency-switcher/
  * Description: Let customers browse your store in their own currency. The admin-configured currency list and exchange rates can only ever be changed through a capability- and nonce-checked settings form -- never by a bare URL parameter, no matter who visits it.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: htrxuan - Han Tran
  * Author URI: https://hdwebmobile.com/
  * License: GPLv2 or later
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define Constants
-define('HDCS_VERSION', '1.0.0');
+define('HDCS_VERSION', '1.1.0');
 define('HDCS_PLUGIN_FILE', __FILE__);
 define('HDCS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('HDCS_PLUGIN_URL', plugin_dir_url(__FILE__));

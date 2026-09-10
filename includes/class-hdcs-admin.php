@@ -66,14 +66,20 @@ class HDCS_Admin
                 continue;
             }
             $rows[] = array(
-                'code'     => $row['code'] ?? '',
-                'symbol'   => $row['symbol'] ?? '',
-                'rate'     => $row['rate'] ?? 0,
-                'decimals' => $row['decimals'] ?? 2,
+                'code'      => $row['code'] ?? '',
+                'symbol'    => $row['symbol'] ?? '',
+                'rate'      => $row['rate'] ?? 0,
+                'decimals'  => $row['decimals'] ?? 2,
+                'countries' => $row['countries'] ?? '',
             );
         }
 
         HDCS_Repository::save_currencies($rows);
+
+        // Two display-only toggles -- neither can corrupt the currency config (that path is
+        // still only HDCS_Repository::save_currencies() above); both are plain booleans.
+        update_option(HDCS_Frontend::OPTION_SHOW_MENU, !empty($_POST['hdcs_show_in_menu']) ? 1 : 0);
+        update_option(HDCS_Frontend::OPTION_AUTO_GEO, !empty($_POST['hdcs_auto_by_country']) ? 1 : 0);
 
         wp_safe_redirect(admin_url('admin.php?page=hdwebmobile&tab=currency-switcher&updated=1'));
         exit;
@@ -85,10 +91,12 @@ class HDCS_Admin
             wp_die(esc_html__('You do not have permission to do this.', 'hdwebmobile-currency-switcher'));
         }
 
-        $currencies = HDCS_Repository::get_currencies();
+        $currencies    = HDCS_Repository::get_currencies();
         // The raw option, not get_woocommerce_currency() -- see class-hdcs-frontend.php's
         // get_selected_currency() docblock for why the filtered getter would recurse here.
-        $base       = get_option('woocommerce_currency');
+        $base          = get_option('woocommerce_currency');
+        $show_in_menu  = (bool) get_option(HDCS_Frontend::OPTION_SHOW_MENU);
+        $auto_by_geo   = (bool) get_option(HDCS_Frontend::OPTION_AUTO_GEO);
         ?>
         <p><?php esc_html_e('Let customers browse your store in a currency of their choice. Checkout charges the amount shown, converted using the rate you set below -- there is no automatic exchange-rate lookup.', 'hdwebmobile-currency-switcher'); ?></p>
 
@@ -99,7 +107,7 @@ class HDCS_Admin
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <input type="hidden" name="action" value="hdcs_save_currencies" />
             <?php wp_nonce_field(self::NONCE_ACTION, 'hdcs_nonce'); ?>
-            <table class="widefat striped" style="max-width:700px;">
+            <table class="widefat striped" style="max-width:820px;">
                 <thead>
                     <tr>
                         <th><?php esc_html_e('Code', 'hdwebmobile-currency-switcher'); ?></th>
@@ -109,11 +117,13 @@ class HDCS_Admin
                             printf(esc_html__('Rate (vs. %s)', 'hdwebmobile-currency-switcher'), esc_html($base));
                         ?></th>
                         <th><?php esc_html_e('Decimals', 'hdwebmobile-currency-switcher'); ?></th>
+                        <th><?php esc_html_e('Countries', 'hdwebmobile-currency-switcher'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php $i = 0; foreach ($currencies as $code => $data) : $is_base = ($code === $base); ?>
                         <?php $rate_display = rtrim(rtrim(number_format((float) $data['rate'], 8, '.', ''), '0'), '.'); ?>
+                        <?php $countries_display = implode(', ', (array) $data['countries']); ?>
                         <tr>
                             <td>
                                 <input type="text" name="hdcs_currency[<?php echo (int) $i; ?>][code]" value="<?php echo esc_attr($code); ?>" maxlength="3" style="width:5em;text-transform:uppercase;" <?php echo $is_base ? 'readonly' : ''; ?> />
@@ -123,6 +133,7 @@ class HDCS_Admin
                                 <input type="number" step="any" min="0" name="hdcs_currency[<?php echo (int) $i; ?>][rate]" value="<?php echo esc_attr($rate_display); ?>" style="width:8em;" <?php echo $is_base ? 'readonly' : ''; ?> />
                             </td>
                             <td><input type="number" step="1" min="0" max="4" name="hdcs_currency[<?php echo (int) $i; ?>][decimals]" value="<?php echo esc_attr($data['decimals']); ?>" style="width:5em;" /></td>
+                            <td><input type="text" name="hdcs_currency[<?php echo (int) $i; ?>][countries]" value="<?php echo esc_attr($countries_display); ?>" placeholder="US, CA" style="width:10em;text-transform:uppercase;" /></td>
                         </tr>
                     <?php $i++; endforeach; ?>
                     <tr>
@@ -130,10 +141,35 @@ class HDCS_Admin
                         <td><input type="text" name="hdcs_currency[<?php echo (int) $i; ?>][symbol]" placeholder="&euro;" style="width:5em;" /></td>
                         <td><input type="number" step="any" min="0" name="hdcs_currency[<?php echo (int) $i; ?>][rate]" placeholder="0.92" style="width:8em;" /></td>
                         <td><input type="number" step="1" min="0" max="4" name="hdcs_currency[<?php echo (int) $i; ?>][decimals]" value="2" style="width:5em;" /></td>
+                        <td><input type="text" name="hdcs_currency[<?php echo (int) $i; ?>][countries]" placeholder="FR, DE, ES" style="width:10em;text-transform:uppercase;" /></td>
                     </tr>
                 </tbody>
             </table>
-            <p class="description"><?php esc_html_e('Leave the last row\'s code blank to skip it. The store\'s base currency is always included at rate 1 and cannot be removed.', 'hdwebmobile-currency-switcher'); ?></p>
+            <p class="description"><?php esc_html_e('Leave the last row\'s code blank to skip it. The store\'s base currency is always included at rate 1 and cannot be removed. Countries: space- or comma-separated 2-letter ISO codes (e.g. "US, CA") -- used only when the auto-by-country option below is on.', 'hdwebmobile-currency-switcher'); ?></p>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row"><?php esc_html_e('Navigation menu', 'hdwebmobile-currency-switcher'); ?></th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="hdcs_show_in_menu" value="1" <?php checked($show_in_menu); ?> />
+                            <?php esc_html_e('Show the currency switcher in the site navigation menu', 'hdwebmobile-currency-switcher'); ?>
+                        </label>
+                        <p class="description"><?php esc_html_e('Adds the switcher as an item in your primary/header menu (works with both classic and block themes).', 'hdwebmobile-currency-switcher'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Automatic currency', 'hdwebmobile-currency-switcher'); ?></th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="hdcs_auto_by_country" value="1" <?php checked($auto_by_geo); ?> />
+                            <?php esc_html_e('Pick a starting currency from the visitor\'s country', 'hdwebmobile-currency-switcher'); ?>
+                        </label>
+                        <p class="description"><?php esc_html_e('Uses WooCommerce\'s own local geolocation database (set up your MaxMind license key under WooCommerce > Settings > Integration). No third-party API is called. Only the first-visit default is chosen -- a visitor who picks a currency keeps it. Fill in the Countries column above to map countries to currencies.', 'hdwebmobile-currency-switcher'); ?></p>
+                    </td>
+                </tr>
+            </table>
+
             <?php submit_button(__('Save Currencies', 'hdwebmobile-currency-switcher')); ?>
         </form>
 

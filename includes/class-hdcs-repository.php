@@ -28,12 +28,21 @@ class HDCS_Repository
     const OPTION_KEY = 'hdcs_currencies';
 
     /**
-     * @return array<string, array{symbol: string, rate: float, decimals: int}>
+     * @return array<string, array{symbol: string, rate: float, decimals: int, countries: string[]}>
      */
     public static function get_currencies()
     {
         $currencies = get_option(self::OPTION_KEY, array());
-        return is_array($currencies) ? $currencies : array();
+        if (!is_array($currencies)) {
+            return array();
+        }
+        // Back-fill the countries key for rows saved before that field existed.
+        foreach ($currencies as $code => $data) {
+            if (!isset($data['countries']) || !is_array($data['countries'])) {
+                $currencies[$code]['countries'] = array();
+            }
+        }
+        return $currencies;
     }
 
     public static function get_currency($code)
@@ -43,11 +52,30 @@ class HDCS_Repository
     }
 
     /**
+     * The currency whose configured country list contains $country_code, or '' if none.
+     * Used only to pick a visitor's STARTING currency from WooCommerce's own geolocation --
+     * never to change any stored config, and always overridden by a manual switch.
+     */
+    public static function find_currency_for_country($country_code)
+    {
+        $country_code = strtoupper((string) $country_code);
+        if (!preg_match('/^[A-Z]{2}$/', $country_code)) {
+            return '';
+        }
+        foreach (self::get_currencies() as $code => $data) {
+            if (in_array($country_code, $data['countries'], true)) {
+                return $code;
+            }
+        }
+        return '';
+    }
+
+    /**
      * The only write path for the currency list. Every value is validated here regardless of
      * caller -- the caller's own authorization check (class-hdcs-admin.php) is the access-control
      * boundary, but this method never trusts the shape of its input either.
      *
-     * @param array $rows Each row: ['code' => string, 'symbol' => string, 'rate' => mixed, 'decimals' => mixed]
+     * @param array $rows Each row: ['code' => string, 'symbol' => string, 'rate' => mixed, 'decimals' => mixed, 'countries' => string]
      */
     public static function save_currencies(array $rows)
     {
@@ -73,10 +101,21 @@ class HDCS_Repository
             $decimals = isset($row['decimals']) ? max(0, min(4, (int) $row['decimals'])) : 2;
             $symbol   = isset($row['symbol']) ? sanitize_text_field($row['symbol']) : $code;
 
+            // Countries: a free-form list the admin typed ("US, CA GB"). Keep only well-shaped
+            // 2-letter codes, uppercased and de-duplicated -- anything else is silently dropped.
+            $countries = array();
+            $raw       = isset($row['countries']) ? sanitize_text_field($row['countries']) : '';
+            foreach (preg_split('/[\s,]+/', strtoupper($raw), -1, PREG_SPLIT_NO_EMPTY) as $cc) {
+                if (preg_match('/^[A-Z]{2}$/', $cc) && !in_array($cc, $countries, true)) {
+                    $countries[] = $cc;
+                }
+            }
+
             $currencies[$code] = array(
-                'symbol'   => $symbol,
-                'rate'     => $rate,
-                'decimals' => $decimals,
+                'symbol'    => $symbol,
+                'rate'      => $rate,
+                'decimals'  => $decimals,
+                'countries' => $countries,
             );
         }
 
@@ -84,9 +123,10 @@ class HDCS_Repository
         // in a state where a customer cannot view prices in the store's own real currency.
         if (!isset($currencies[$base])) {
             $currencies[$base] = array(
-                'symbol'   => get_woocommerce_currency_symbol($base),
-                'rate'     => 1.0,
-                'decimals' => wc_get_price_decimals(),
+                'symbol'    => get_woocommerce_currency_symbol($base),
+                'rate'      => 1.0,
+                'decimals'  => wc_get_price_decimals(),
+                'countries' => array(),
             );
         }
 
