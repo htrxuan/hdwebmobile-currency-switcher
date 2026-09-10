@@ -52,18 +52,24 @@ class HDCS_Admin
             wp_die(esc_html__('Security check failed. Please try again.', 'hdwebmobile-currency-switcher'));
         }
 
-        $codes     = isset($_POST['hdcs_code']) ? (array) wp_unslash($_POST['hdcs_code']) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- each field is individually sanitized/validated inside HDCS_Repository::save_currencies(), which never trusts caller input regardless of this authorization gate.
-        $symbols   = isset($_POST['hdcs_symbol']) ? (array) wp_unslash($_POST['hdcs_symbol']) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- see above.
-        $rates     = isset($_POST['hdcs_rate']) ? (array) wp_unslash($_POST['hdcs_rate']) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- see above.
-        $decimals  = isset($_POST['hdcs_decimals']) ? (array) wp_unslash($_POST['hdcs_decimals']) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- see above.
+        // Grouped per-row arrays (hdcs_currency[N][code], [symbol], [rate], [decimals]) -- each
+        // row is self-contained, so a field the browser doesn't submit (a disabled input on the
+        // base-currency row) can never shift another row's values out of alignment the way four
+        // separate parallel arrays could.
+        $submitted = isset($_POST['hdcs_currency']) && is_array($_POST['hdcs_currency'])
+            ? (array) wp_unslash($_POST['hdcs_currency']) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- each field is individually sanitized/validated inside HDCS_Repository::save_currencies(), which never trusts caller input regardless of this authorization gate.
+            : array();
 
         $rows = array();
-        foreach ($codes as $i => $code) {
+        foreach ($submitted as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
             $rows[] = array(
-                'code'     => $code,
-                'symbol'   => $symbols[$i] ?? '',
-                'rate'     => $rates[$i] ?? 0,
-                'decimals' => $decimals[$i] ?? 2,
+                'code'     => $row['code'] ?? '',
+                'symbol'   => $row['symbol'] ?? '',
+                'rate'     => $row['rate'] ?? 0,
+                'decimals' => $row['decimals'] ?? 2,
             );
         }
 
@@ -106,19 +112,24 @@ class HDCS_Admin
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($currencies as $code => $data) : ?>
+                    <?php $i = 0; foreach ($currencies as $code => $data) : $is_base = ($code === $base); ?>
+                        <?php $rate_display = rtrim(rtrim(number_format((float) $data['rate'], 8, '.', ''), '0'), '.'); ?>
                         <tr>
-                            <td><input type="text" name="hdcs_code[]" value="<?php echo esc_attr($code); ?>" maxlength="3" style="width:5em;text-transform:uppercase;" <?php disabled($code, $base); ?> /></td>
-                            <td><input type="text" name="hdcs_symbol[]" value="<?php echo esc_attr($data['symbol']); ?>" style="width:5em;" /></td>
-                            <td><input type="number" step="0.0001" min="0.0001" name="hdcs_rate[]" value="<?php echo esc_attr($data['rate']); ?>" style="width:8em;" <?php disabled($code, $base); ?> /></td>
-                            <td><input type="number" step="1" min="0" max="4" name="hdcs_decimals[]" value="<?php echo esc_attr($data['decimals']); ?>" style="width:5em;" /></td>
+                            <td>
+                                <input type="text" name="hdcs_currency[<?php echo (int) $i; ?>][code]" value="<?php echo esc_attr($code); ?>" maxlength="3" style="width:5em;text-transform:uppercase;" <?php echo $is_base ? 'readonly' : ''; ?> />
+                            </td>
+                            <td><input type="text" name="hdcs_currency[<?php echo (int) $i; ?>][symbol]" value="<?php echo esc_attr($data['symbol']); ?>" style="width:5em;" /></td>
+                            <td>
+                                <input type="number" step="any" min="0" name="hdcs_currency[<?php echo (int) $i; ?>][rate]" value="<?php echo esc_attr($rate_display); ?>" style="width:8em;" <?php echo $is_base ? 'readonly' : ''; ?> />
+                            </td>
+                            <td><input type="number" step="1" min="0" max="4" name="hdcs_currency[<?php echo (int) $i; ?>][decimals]" value="<?php echo esc_attr($data['decimals']); ?>" style="width:5em;" /></td>
                         </tr>
-                    <?php endforeach; ?>
+                    <?php $i++; endforeach; ?>
                     <tr>
-                        <td><input type="text" name="hdcs_code[]" placeholder="EUR" maxlength="3" style="width:5em;text-transform:uppercase;" /></td>
-                        <td><input type="text" name="hdcs_symbol[]" placeholder="&euro;" style="width:5em;" /></td>
-                        <td><input type="number" step="0.0001" min="0.0001" name="hdcs_rate[]" placeholder="0.92" style="width:8em;" /></td>
-                        <td><input type="number" step="1" min="0" max="4" name="hdcs_decimals[]" value="2" style="width:5em;" /></td>
+                        <td><input type="text" name="hdcs_currency[<?php echo (int) $i; ?>][code]" placeholder="EUR" maxlength="3" style="width:5em;text-transform:uppercase;" /></td>
+                        <td><input type="text" name="hdcs_currency[<?php echo (int) $i; ?>][symbol]" placeholder="&euro;" style="width:5em;" /></td>
+                        <td><input type="number" step="any" min="0" name="hdcs_currency[<?php echo (int) $i; ?>][rate]" placeholder="0.92" style="width:8em;" /></td>
+                        <td><input type="number" step="1" min="0" max="4" name="hdcs_currency[<?php echo (int) $i; ?>][decimals]" value="2" style="width:5em;" /></td>
                     </tr>
                 </tbody>
             </table>
