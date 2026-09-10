@@ -1,0 +1,13 @@
+.hdcs-switcher {
+    margin: 0 0 1em;
+    font-size: 0.9em;
+}
+
+.hdcs-switcher label {
+    font-weight: 600;
+    margin-right: 0.4em;
+}
+
+.hdcs-switcher select {
+    padding: 0.3em 0.5em;
+}
