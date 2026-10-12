@@ -16,8 +16,8 @@ Let customers browse and check out in their own currency, with admin-configured 
 
 HDWebmobile Currency Switcher adds a simple currency dropdown to your store. Customers pick a currency, prices convert everywhere (shop, product page, cart, checkout) using the rate you set, and their order is recorded in that currency.
 
-= Why this plugin exists =
-A competing WooCommerce currency-switcher plugin had a serious authorization vulnerability (CVE-2026-4094, CVSS 8.1, CWE-862 Missing Authorization): its entire multi-currency configuration could be wiped out by ANY authenticated user -- Contributor level and above -- simply by visiting any wp-admin page with a `woocs_reset` parameter appended to the URL. The vulnerable code read that parameter directly from an `admin_head` hook with no capability check and no nonce at all. This plugin closes that vulnerability class by construction:
+= Security by design =
+A serious class of bug in currency-switcher tools is a settings-reset action that any authenticated user -- Contributor level and above -- can trigger simply by visiting a wp-admin page with a reset parameter appended to the URL, because the parameter is read directly from an admin hook with no capability check and no nonce at all (CWE-862, Missing Authorization). This plugin closes that vulnerability class by construction:
 
 * The currency list and exchange rates are written in exactly one place, and that one place requires `current_user_can('manage_woocommerce')` AND a verified nonce before a single field is read -- there is no `admin_head`/`admin_init` code path that acts on a bare URL parameter.
 * The customer-facing currency switch is a completely separate, harmless mechanism: it only ever selects which already-admin-configured currency to display prices in, stored in the visitor's own cookie. It can never write to the store's configuration, and an unlisted or tampered currency code is always silently ignored.
