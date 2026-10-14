@@ -37,6 +37,9 @@ A serious class of bug in currency-switcher tools is a settings-reset action tha
 * Automatic currency-by-country relies on WooCommerce's own geolocation database being set up (a free MaxMind license key under WooCommerce > Settings > Integration). If it isn't, or the visitor's country can't be determined, the store's base currency is used
 * Automatic selection only chooses the *starting* currency on a visitor's first look; it never overrides a currency the visitor has picked
 
+= Enjoying this plugin? =
+If it helps your site, please consider [leaving an honest review on WordPress.org](https://wordpress.org/support/plugin/hdwebmobile-currency-switcher/reviews/#new-post) -- it helps other WordPress users find it. Found a problem or have an idea? Please [open a support topic](https://wordpress.org/support/plugin/hdwebmobile-currency-switcher/) first so it can be fixed.
+
 == Installation ==
 
 1. Upload the plugin files to the `/wp-content/plugins/hdwebmobile-currency-switcher` directory, or install the plugin through the WordPress plugins screen directly.
