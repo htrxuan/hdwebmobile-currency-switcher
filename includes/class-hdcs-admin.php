@@ -39,9 +39,8 @@ class HDCS_Admin
 
     /**
      * The ONLY place HDCS_Repository::save_currencies() is ever called. Both the capability
-     * check AND the nonce check happen before a single byte of $_POST is read -- this is the
-     * exact gate the vulnerable competing plugin was missing entirely (see class-hdcs-
-     * repository.php's docblock for CVE-2026-4094's details).
+     * check AND the nonce check happen before a single byte of $_POST is read (see
+     * class-hdcs-repository.php's docblock).
      */
     public function save_currencies()
     {

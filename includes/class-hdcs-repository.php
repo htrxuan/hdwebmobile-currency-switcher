@@ -7,11 +7,10 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Closes CVE-2026-4094 (CVSS 8.1, CWE-862 Missing Authorization) in a competing WooCommerce
- * currency-switcher plugin: its multi-currency configuration could be wiped entirely by ANY
- * authenticated user (Contributor level and above) simply by visiting any wp-admin page with a
- * `woocs_reset` query-string parameter appended -- the vulnerable code read that parameter and
- * acted on it directly from an `admin_head` hook, with no capability check and no nonce.
+ * Guards against missing authorization (CWE-862) on configuration changes. The risk: code that
+ * reads a "reset" query-string parameter and acts on it directly from an admin hook, with no
+ * capability check and no nonce, would let ANY authenticated user (Contributor and above) wipe
+ * the multi-currency configuration simply by visiting a wp-admin page with that parameter.
  *
  * This class is the ONLY place the currency list is ever written, and save_currencies() is
  * called from exactly one place in the entire plugin (class-hdcs-admin.php's settings-save
